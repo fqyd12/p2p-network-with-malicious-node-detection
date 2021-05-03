@@ -3,6 +3,7 @@ import threading
 from utils import create_socket
 from peer import Peer
 from constants import TRACKER_PORT
+import time
 
 class Tracker:
   def __init__(self):
@@ -15,6 +16,8 @@ class Tracker:
 
     tracker_sock.listen(1)
 
+    self.peer_socks = {}
+
     self.tracker_sock = tracker_sock
 
     self.listening_thread = threading.Thread(target=self.start_tracking)
@@ -25,21 +28,28 @@ class Tracker:
       try:
         peer_sock, peer_addr = self.tracker_sock.accept()
 
+        self.peer_socks[peer_addr[1]] = peer_sock
+
         print("New incoming peer:", peer_addr)
 
-        new_peer_id = len(self.peer_list)+1
-        new_peer = Peer(new_peer_id)
+        peer_ports_str = ""
 
-        for peer in self.peer_list:
-          new_peer.connect_to(peer.pid)
-          peer.connect_to(new_peer_id)
+        for peer_port in self.peer_list:
+          peer_ports_str += str(peer_port).zfill(5) + ","
+        
+        len_peer_ports_str = str(len(peer_ports_str)).zfill(5)
 
-        self.peer_list.append(new_peer)
+        peer_ports_str = len_peer_ports_str + peer_ports_str
+        
+        peer_sock.send(peer_ports_str.encode("utf-8"))
+
+        new_port = peer_sock.recv(6).decode("utf-8")
+
+        print(new_port)
+
+        self.peer_list.append(int(new_port))
       except KeyboardInterrupt:
         break
-    
-    for peer in self.peer_list:
-      peer.disconnect()
     
     self.listening_thread.join()
     self.tracker_sock.close()
