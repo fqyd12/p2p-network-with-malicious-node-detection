@@ -1,16 +1,12 @@
-import sys
+import os
 import threading
 from utils import create_socket
 from peer import Peer
 from constants import TRACKER_PORT, REPORTS_SOCK_PORT
-import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
 import networkx as nx
-import numpy as np
-
-reports = {}
 
 class Tracker:
   def __init__(self):
@@ -29,6 +25,7 @@ class Tracker:
     reports_sock.listen(1)
 
     self.peer_socks = {}
+    self.reports = {}
 
     self.tracker_sock = tracker_sock
     self.reports_sock = reports_sock
@@ -36,7 +33,7 @@ class Tracker:
     self.tracking_thread = threading.Thread(target=self.start_tracking)
     self.tracking_thread.start()
 
-    self.reports_thread = threading.Thread(target=self.listen_reports)
+    self.reports_thread = threading.Thread(target=self.listen_reports, args=[self])
     self.reports_thread.start()
 
   def start_tracking(self):
@@ -69,13 +66,13 @@ class Tracker:
     self.reports_sock.close()
 
   def get_reports(self, peer):
-    if peer in reports:
-      return reports[peer]
+    if peer in self.reports:
+      return self.reports[peer]
     
     return 0
   
-  def listen_reports(self):
-    global reports
+  def listen_reports(self, parent):
+    reports = parent.reports
     while True:
       try:
         peer_sock, peer_addr = self.reports_sock.accept()
@@ -104,7 +101,7 @@ if __name__ == "__main__":
   tracker = Tracker()
   plt.ion()
   l = len(tracker.peer_list)
-  s = sum(reports.values())
+  s = sum(tracker.reports.values())
   while True:
     G = nx.Graph()
     labels = {}
@@ -119,9 +116,9 @@ if __name__ == "__main__":
     
     nx.draw(G, labels=labels, with_labels=True)
 
-    while len(tracker.peer_list) == l and sum(reports.values()) == s:
+    while len(tracker.peer_list) == l and sum(tracker.reports.values()) == s:
       plt.pause(0.0001)
 
     l = len(tracker.peer_list)
-    s = sum(reports.values())
+    s = sum(tracker.reports.values())
     plt.clf()

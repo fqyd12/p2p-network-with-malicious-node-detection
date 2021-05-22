@@ -3,10 +3,6 @@ import os
 from utils import create_socket
 from constants import TRACKER_PORT, REPORTS_SOCK_PORT, malicious_words
 import threading
-import json
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import style
 
 class Peer:
   def __init__(self, port):
